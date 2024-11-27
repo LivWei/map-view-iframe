@@ -1,5 +1,16 @@
 <template>
-  <div id="map"></div>
+  <dir class="map-content">
+    <div id="map"></div>
+
+    <div class="btns">
+      <div title="刷新" @click="refresh">
+        <img src="../assets/images/rf.png" alt="">
+      </div>
+      <div title="下载缩略图" @click="directDownloadImg">
+        <img src="../assets/images/img.png" alt="">
+      </div>
+    </div>
+  </dir>
 </template>
 
 <script>
@@ -36,6 +47,12 @@ export default {
     this.getServiceInfoById(catald);
   },
   methods: {
+    // 刷新
+    refresh() {
+      const view = this.map.getView();
+      view.setCenter(window.mapConfig.center);
+      view.setZoom(window.mapConfig.zoom + 2);
+    },
     // 获取URL参数
     getUrlParams(url) {
       const urlParams = new URLSearchParams(url.split("?")[1]);
@@ -564,4 +581,52 @@ export default {
   destroyed() {},
 };
 </script>
-<style lang="less" scoped></style>
+<style lang="less" scoped>
+.map-content {
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+
+  #map {
+    height: 100%;
+    width: 100%;
+  }
+
+  .btns {
+    position: absolute;
+    right: 1%;
+    top: 128px;
+    z-index: 10;
+    width: 30px;
+    min-height: 40px;
+    background: #ffffff;
+    z-index: 9999;
+    border: 2px solid rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+
+    div {
+      height: 30px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: #000;
+      cursor: pointer;
+
+      img {
+        height: 20px;
+        width: 20px;
+      }
+    }
+
+    div:first-child {
+      border-bottom: 1px solid #ccc;
+    }
+  }
+}
+</style>

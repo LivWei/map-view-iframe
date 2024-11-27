@@ -143,8 +143,8 @@
 }
 
 .ol-zoom {
-  top: .5em;
-  left: .5em;
+  right: 1%;
+  top: 55px;
 }
 
 .ol-rotate {
@@ -178,12 +178,13 @@
   text-decoration: none;
   font-size: inherit;
   text-align: center;
-  height: 1.375em;
-  width: 1.375em;
-  line-height: .4em;
-  background-color: var(--ol-background-color);
-  border: none;
-  border-radius: 2px;
+  height: 32px;
+  width: 32px;
+  line-height: 32px;
+  background: #ffffff;
+  border: 2px solid rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .ol-control button::-moz-focus-inner {
