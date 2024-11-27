@@ -30,11 +30,7 @@ export default {
     };
   },
   created() {
-    if (process.env.NODE_ENV === 'production') {
-      this.showBtns = window.location.href.includes('op-manage')
-    } else {
-      this.showBtns = true
-    }
+    this.showBtns = window.top && window.top.location.href.includes('op-manage')
     
 
     this.fill = new ol.style.Fill({
