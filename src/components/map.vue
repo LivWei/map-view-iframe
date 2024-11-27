@@ -2,7 +2,7 @@
   <dir class="map-content">
     <div id="map"></div>
 
-    <div class="btns">
+    <div class="btns" v-if="showBtns">
       <div title="刷新" @click="refresh">
         <img src="../assets/images/rf.png" alt="">
       </div>
@@ -14,6 +14,7 @@
 </template>
 
 <script>
+import html2canvas from "html2canvas";
 export default {
   components: {},
   props: {},
@@ -24,9 +25,18 @@ export default {
       fill: null,
       stroke: null,
       image: null,
+
+      showBtns: false
     };
   },
   created() {
+    if (process.env.NODE_ENV === 'production') {
+      this.showBtns = window.location.href.includes('op-manage')
+    } else {
+      this.showBtns = true
+    }
+    
+
     this.fill = new ol.style.Fill({
       color: "rgba(239,152,152, 0.8)",
     });
@@ -53,6 +63,69 @@ export default {
       view.setCenter(window.mapConfig.center);
       view.setZoom(window.mapConfig.zoom + 2);
     },
+    // 下载缩略图
+    directDownloadImg() {
+      const promises = [
+        this.createPreviewImg(600, 880, "pc端预览图"),
+        this.createPreviewImg(300, 300, "pc端缩略图"),
+        this.createPreviewImg(300, 300, "pc端缩略图"),
+        this.createPreviewImg(300, 300, "pc端缩略图"),
+        this.createPreviewImg(520, 975, "移动端地图图片"),
+        this.createPreviewImg(520, 975, "移动端地图图片"),
+        this.createPreviewImg(520, 975, "移动端地图图片"),
+      ];
+
+      Promise.all(promises)
+        .then((results) => {
+          this.$message({
+            message: "图片已下载！",
+            type: "success",
+          });
+        })
+        .catch((error) => {
+          // 如果任何一个html2canvas操作失败，这里会捕获到错误
+          console.error("渲染过程中出现错误:", error);
+        });
+    },
+    // 创建图片
+    createPreviewImg(height, width, name) {
+      const element = document.querySelector(".map-content");
+      const x = (window.innerWidth - width) / 2 - 5;
+      const y = (window.innerHeight - 60 - height) / 2;
+
+      let proxyUrl = ''
+      if (process.env.NODE_ENV === 'production') {
+        if (window.isProduction) {
+          proxyUrl = 'https://data.gdgov.cn'
+        } else {
+          proxyUrl = 'https://xtbgzww.digitalgd.com.cn'
+        }
+      } else {
+        proxyUrl = 'http://localhost:8077'
+      }
+      html2canvas(element, {
+        proxy: proxyUrl,
+        useCORS: true,
+        allowTaint: true,
+        height: height,
+        width: width,
+        x: x,
+        y: y,
+        scale: 1,
+        dpi: window.devicePixelRatio * 0.5,
+      }).then((canvas) => {
+        const base64URL = canvas.toDataURL("image/png", 1.0);
+        const a = document.createElement("a");
+        a.href = base64URL;
+        const imgName = `${name}_${new Date().getTime()}`;
+        a.setAttribute("download", imgName);
+        a.click();
+      });
+    },
+
+
+
+
     // 获取URL参数
     getUrlParams(url) {
       const urlParams = new URLSearchParams(url.split("?")[1]);
