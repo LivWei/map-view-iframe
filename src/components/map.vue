@@ -127,6 +127,25 @@ export default {
       });
 
       console.log("天地图加载完成！");
+      // window.map = this.map; //调试使用
+
+      // 广东省边界线
+      // const that = this
+      // fetch('./guangdong.json')
+      //   .then(function (response) {
+      //     return response.text();
+      //   })
+      //   .then(function (json) {
+      //     const vectorSource = new ol.source.Vector({
+      //       features: new ol.format.GeoJSON().readFeatures(JSON.parse(json)),
+      //     });
+
+      //     const vectorLayer = new ol.layer.Vector({
+      //       source: vectorSource,
+      //     });
+
+      //     that.map.addLayer(vectorLayer);
+      //   })
     },
     // 航太宏图 WNTS
     addHtWMTSLayers(wmtsUrl, wmtsGetCapabilitiesUrl, layerName, serviceCode) {
@@ -447,7 +466,7 @@ export default {
               if (layerUrl.includes("mapserver") && layerUrl.includes("WFS")) {
                 const wfsUrL = layerUrl;
                 const urlParamsList = wfsUrL.split("/");
-                const layerName = urlParamsList[urlParamsList.length - 1];
+                const layerName = urlParamsList[urlParamsList.length - 2];
                 that.addHtWFSLayers(wfsUrL, layerName, serviceCode);
               }
 
