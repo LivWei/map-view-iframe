@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+    <title><%= htmlWebpackPlugin.options.title %></title>
+
+    <!-- 引入openlayers -->
+    <script src="./js/openlayers/ol.js"></script>
+    <script src="./js/openlayers/proj4-src.min.js"></script>
+    <script src="./js/openlayers/xml2json.js"></script>
+    <link rel="stylesheet" href="./js/openlayers/ol.css" />
+  </head>
+  <body>
+    <noscript>
+      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+    
+    <script>
+      window.mapConfig = {
+        center: [114.16501, 22.5613],
+        zoom: 6,
+        tk: "3764ab3da844e87462f2f827afa0f9f3",
+        zdsmToken: "846d7b91-d2a3-4edb-978c-48063e2840ef"
+      }
+      window.htBaseUrl = '/service-pub'
+    </script>
+  </body>
+</html>
