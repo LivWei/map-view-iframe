@@ -4,10 +4,10 @@
 
     <div class="btns" v-if="showBtns">
       <div title="刷新" @click="refresh">
-        <img src="../assets/images/rf.png" alt="">
+        <img src="../assets/images/rf.png" alt="" />
       </div>
       <div title="下载缩略图" @click="directDownloadImg">
-        <img src="../assets/images/img.png" alt="">
+        <img src="../assets/images/img.png" alt="" />
       </div>
     </div>
   </dir>
@@ -26,11 +26,12 @@ export default {
       stroke: null,
       image: null,
 
-      showBtns: false
+      showBtns: false,
     };
   },
   created() {
-    this.showBtns = window.top && window.top.location.href.includes('op-manage')
+    this.showBtns =
+      window.top && window.top.location.href.includes("op-manage");
   },
   mounted() {
     this.addBaseMap();
@@ -47,12 +48,11 @@ export default {
       fill: this.fill,
       stroke: this.stroke,
     });
-    console.log(this.fill, this.stroke, this.image)
 
     const catald = this.getUrlParams(window.location.search).catald;
     const layerUrl = this.getUrlParams(window.location.search).layerUrl;
     if (layerUrl) {
-      this.getFunByUrl(layerUrl)
+      this.getFunByUrl(layerUrl);
     }
 
     if (catald) {
@@ -96,15 +96,15 @@ export default {
       const x = (window.innerWidth - width) / 2 - 5;
       const y = (window.innerHeight - 60 - height) / 2;
 
-      let proxyUrl = ''
-      if (process.env.NODE_ENV === 'production') {
+      let proxyUrl = "";
+      if (process.env.NODE_ENV === "production") {
         if (window.isProduction) {
-          proxyUrl = 'https://data.gdgov.cn'
+          proxyUrl = "https://data.gdgov.cn";
         } else {
-          proxyUrl = 'https://xtbgzww.digitalgd.com.cn'
+          proxyUrl = "https://xtbgzww.digitalgd.com.cn";
         }
       } else {
-        proxyUrl = 'http://localhost:8077'
+        proxyUrl = "http://localhost:8077";
       }
       html2canvas(element, {
         proxy: proxyUrl,
@@ -125,9 +125,6 @@ export default {
         a.click();
       });
     },
-
-
-
 
     // 获取URL参数
     getUrlParams(url) {
@@ -184,7 +181,6 @@ export default {
         resolutions[z] = size / Math.pow(2, z);
       }
       const matrixIds = Array.from({ length: 17 }, (_, i) => i.toString());
-
       const list = ["vec", "cva"];
       let layerList = [];
       list.forEach((item) => {
@@ -320,7 +316,7 @@ export default {
             stroke: that.stroke,
             image: that.image,
           });
-          
+
           const format = new ol.format.WKT();
           const featureList = [];
           jsonList.forEach((item) => {
@@ -515,11 +511,10 @@ export default {
 
     // 通过服务url判断调用哪个方法
     getFunByUrl(_url) {
-      const that = this
+      const that = this;
       function delUrlIp(url) {
         // 使用正则表达式匹配协议和域名/IP部分
-        const regex =
-          /^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^\/\n]+)(.*)/;
+        const regex = /^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^\/\n]+)(.*)/;
         // 使用正则表达式替换匹配的部分
         return url.replace(regex, "$2");
       }
@@ -533,11 +528,7 @@ export default {
         const urlParamsList = wmtsUrl.split("/");
         const layerName = urlParamsList[urlParamsList.length - 2];
         const wmtsGetCapabilitiesUrl = wmtsUrl + "/getCapabilities";
-        that.addHtWMTSLayers(
-          wmtsUrl,
-          wmtsGetCapabilitiesUrl,
-          layerName,
-        );
+        that.addHtWMTSLayers(wmtsUrl, wmtsGetCapabilitiesUrl, layerName);
       }
       // 航天宏图wfs
       if (layerUrl.includes("mapserver") && layerUrl.includes("WFS")) {
@@ -546,12 +537,10 @@ export default {
         const layerName = urlParamsList[urlParamsList.length - 2];
         that.addHtWFSLayers(wfsUrL, layerName);
       }
-      
+
       // 中地数码
       if (layerUrl.includes("/rest/services/")) {
-        const paramsList = layerUrl
-          .split("/rest/services/")[1]
-          .split("/");
+        const paramsList = layerUrl.split("/rest/services/")[1].split("/");
         const layerName = paramsList[paramsList.length - 2];
         if (layerUrl.includes("WMTS")) {
           that.addZdsmWMTSLayers(layerUrl, layerName);
@@ -575,19 +564,20 @@ export default {
           if (data.status == 200) {
             if (data.data && data.data.gateway && data.data.gateway.serApiUrl) {
               const _url = data.data.gateway.serApiUrl;
-              that.getFunByUrl(_url)
+              that.getFunByUrl(_url);
             }
           } else {
             // 调用吉奥查询接口
             that.getServiceInfoByGao(id);
           }
         })
-        .catch((error) => {
-        });
+        .catch((error) => {});
     },
-    // 通过id获取吉奥服务信息
+    // 通过id获取other服务信息
     getServiceInfoByGao(id) {
-      const that = this
+      this.addWdjaWMTSLayers();
+      return;
+      const that = this;
       const url = `https://data.gdgov.cn/index/yzt/ResourcesCenter/resource/viewInfo?id=${id}`;
       function delUrlIp(url) {
         // 使用正则表达式匹配协议和域名/IP部分
@@ -612,23 +602,12 @@ export default {
             .then(function (text) {
               const parser = new ol.format.WMTSCapabilities();
               const result = parser.read(text);
-              const layerName = result.Contents.Layer[0].Title
+              const layerName = result.Contents.Layer[0].Title;
               const options = ol.source.WMTS.optionsFromCapabilities(result, {
                 layer: layerName,
               });
-              console.log(options);
 
-              // 设置天地图底图
-              const projection = ol.proj.get("EPSG:4326");
-              const projectionExtent = projection.getExtent();
-              const size = ol.extent.getWidth(projectionExtent) / 256;
-              const resolutions = [];
-              for (let z = 1; z < 20; ++z) {
-                resolutions[z] = size / Math.pow(2, z);
-              }
-              const matrixIds = Array.from({ length: 17 }, (_, i) =>
-                i.toString()
-              );
+              that.getProjection4490();
 
               const _layer = new ol.layer.Tile({
                 opacity: 1,
@@ -649,6 +628,54 @@ export default {
 
               that.map.addLayer(_layer);
             });
+        });
+    },
+
+    //武大吉奥 wmts
+    addWdjaWMTSLayers(layerUrl, layerName) {
+      const that = this;
+      const _layerUrl =
+        "/index/yzt/geostar/GD_2020DLG/wmts?SERVICE=WMTS";
+      // 请求图层的元数据
+      fetch(_layerUrl + "&REQUEST=GetCapabilities")
+        .then(function (response) {
+          return response.text();
+        })
+        .then(function (text) {
+          const parser = new ol.format.WMTSCapabilities();
+          const result = parser.read(text);
+          const options = ol.source.WMTS.optionsFromCapabilities(result, {
+            layer: "DLGDT_2000_2020",
+          });
+          console.log(options)
+
+          // 设置天地图底图
+          const projectionExtent = that.getProjection4326().getExtent();
+          const size = ol.extent.getWidth(projectionExtent) / 256;
+          const resolutions = [];
+          for (let z = 7; z < 18; ++z) {
+            resolutions[z] = size / Math.pow(2, z);
+          }
+          const matrixIds = Array.from({ length: 17 }, (_, i) => i.toString());
+          const _layer = new ol.layer.Tile({
+            source: new ol.source.WMTS({
+              url: _layerUrl,
+              layer: options.layer,
+              style: options.style,
+              serviceName: options.layer,
+              matrixSet: options.matrixSet,
+              format: options.format,
+              tileGrid: new ol.tilegrid.WMTS({
+                origin: ol.extent.getTopLeft(
+                  that.getProjection4326().getExtent()
+                ),
+                resolutions: resolutions,
+                matrixIds: matrixIds,
+              }),
+              wrapX: false,
+            }),
+          });
+          that.map.addLayer(_layer);
         });
     },
   },
