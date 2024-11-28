@@ -575,8 +575,8 @@ export default {
     },
     // 通过id获取other服务信息
     getServiceInfoByGao(id) {
-      this.addWdjaWMTSLayers();
-      return;
+      // this.addWdjaWMTSLayers();
+      // return;
       const that = this;
       const url = `https://data.gdgov.cn/index/yzt/ResourcesCenter/resource/viewInfo?id=${id}`;
       function delUrlIp(url) {
@@ -602,12 +602,23 @@ export default {
             .then(function (text) {
               const parser = new ol.format.WMTSCapabilities();
               const result = parser.read(text);
-              const layerName = result.Contents.Layer[0].Title;
+              const layerName = result.Contents.Layer[0].Title
               const options = ol.source.WMTS.optionsFromCapabilities(result, {
                 layer: layerName,
               });
+              console.log(options);
 
-              that.getProjection4490();
+              // 设置天地图底图
+              const projection = ol.proj.get("EPSG:4326");
+              const projectionExtent = projection.getExtent();
+              const size = ol.extent.getWidth(projectionExtent) / 256;
+              const resolutions = [];
+              for (let z = 1; z < 20; ++z) {
+                resolutions[z] = size / Math.pow(2, z);
+              }
+              const matrixIds = Array.from({ length: 17 }, (_, i) =>
+                i.toString()
+              );
 
               const _layer = new ol.layer.Tile({
                 opacity: 1,
