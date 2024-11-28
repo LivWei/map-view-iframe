@@ -31,7 +31,9 @@ export default {
   },
   created() {
     this.showBtns = window.top && window.top.location.href.includes('op-manage')
-    
+  },
+  mounted() {
+    this.addBaseMap();
 
     this.fill = new ol.style.Fill({
       color: "rgba(239,152,152, 0.8)",
@@ -45,12 +47,17 @@ export default {
       fill: this.fill,
       stroke: this.stroke,
     });
-  },
-  mounted() {
-    this.addBaseMap();
+    console.log(this.fill, this.stroke, this.image)
 
     const catald = this.getUrlParams(window.location.search).catald;
-    this.getServiceInfoById(catald);
+    const layerUrl = this.getUrlParams(window.location.search).layerUrl;
+    if (layerUrl) {
+      this.getFunByUrl(layerUrl)
+    }
+
+    if (catald) {
+      this.getServiceInfoById(catald);
+    }
   },
   methods: {
     // 刷新
@@ -234,10 +241,10 @@ export default {
       //   })
     },
     // 航太宏图 WNTS
-    addHtWMTSLayers(wmtsUrl, wmtsGetCapabilitiesUrl, layerName, serviceCode) {
+    addHtWMTSLayers(wmtsUrl, wmtsGetCapabilitiesUrl, layerName) {
       const that = this;
       // 请求图层的元数据
-      fetch(`${wmtsGetCapabilitiesUrl}?serviceCode=${serviceCode}`)
+      fetch(`${wmtsGetCapabilitiesUrl}`)
         .then(function (response) {
           return response.text();
         })
@@ -284,7 +291,7 @@ export default {
         });
     },
     // 航天宏图 WFS
-    addHtWFSLayers(wfsUrL, layerName, serviceCode) {
+    addHtWFSLayers(wfsUrL, layerName) {
       const that = this;
       const params = {
         service: "WFS",
@@ -294,7 +301,6 @@ export default {
         outputFormat: "application/json",
         maxFeatures: 1000000,
         srsName: "EPSG:4490",
-        serviceCode: serviceCode,
       };
 
       const queryString = Object.keys(params)
@@ -314,7 +320,7 @@ export default {
             stroke: that.stroke,
             image: that.image,
           });
-
+          
           const format = new ol.format.WKT();
           const featureList = [];
           jsonList.forEach((item) => {
@@ -333,9 +339,9 @@ export default {
     },
 
     // 中地数码 WMTS
-    addZdsmWMTSLayers(wmtsUrl, layerName, serviceCode) {
+    addZdsmWMTSLayers(wmtsUrl, layerName) {
       const that = this;
-      const url = `${wmtsUrl}?serviceCode=${serviceCode}&token=${window.mapConfig.zdsmToken}`;
+      const url = `${wmtsUrl}?token=${window.mapConfig.zdsmToken}`;
       // 请求图层的元数据
       fetch(url)
         .then(function (response) {
@@ -360,7 +366,6 @@ export default {
               requestEncoding: options.requestEncoding,
               style: options.style,
               tileGrid: options.tileGrid,
-              serviceCode: serviceCode,
               token: window.mapConfig.zdsmToken,
               wrapX: true,
             }),
@@ -370,7 +375,7 @@ export default {
         });
     },
     // 中地数码 WFS
-    addZdsmWFSLayers(layerUrl, layerName, serviceCode) {
+    addZdsmWFSLayers(layerUrl, layerName) {
       const that = this;
       const params = {
         service: "WFS",
@@ -378,7 +383,6 @@ export default {
         request: "GetFeature",
         typename: `${layerName}:t0`, // 图层名称，格式为workspace:layer_name
         token: window.mapConfig.zdsmToken,
-        serviceCode: serviceCode,
       };
 
       const queryString = Object.keys(params)
@@ -426,11 +430,11 @@ export default {
               Feature.setStyle(
                 new ol.style.Style({
                   image: that.image,
-                  text: new ol.style.Text({
-                    text: item["标准名"].__text,
-                    offsetY: -5,
-                    fill: new ol.style.Fill({ color: "#000000" }),
-                  }),
+                  // text: new ol.style.Text({
+                  //   text: item["标准名"].__text,
+                  //   offsetY: -5,
+                  //   fill: new ol.style.Fill({ color: "#000000" }),
+                  // }),
                 })
               );
               featureList.push(Feature);
@@ -509,6 +513,55 @@ export default {
         });
     },
 
+    // 通过服务url判断调用哪个方法
+    getFunByUrl(_url) {
+      const that = this
+      function delUrlIp(url) {
+        // 使用正则表达式匹配协议和域名/IP部分
+        const regex =
+          /^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^\/\n]+)(.*)/;
+        // 使用正则表达式替换匹配的部分
+        return url.replace(regex, "$2");
+      }
+      const layerUrl = window.htBaseUrl + delUrlIp(_url);
+      // 航天宏图wmts
+      if (
+        (layerUrl.includes("mapserver") && layerUrl.includes("WMTS")) ||
+        layerUrl.includes("/image/WMTS")
+      ) {
+        const wmtsUrl = layerUrl.split("/getTile")[0];
+        const urlParamsList = wmtsUrl.split("/");
+        const layerName = urlParamsList[urlParamsList.length - 2];
+        const wmtsGetCapabilitiesUrl = wmtsUrl + "/getCapabilities";
+        that.addHtWMTSLayers(
+          wmtsUrl,
+          wmtsGetCapabilitiesUrl,
+          layerName,
+        );
+      }
+      // 航天宏图wfs
+      if (layerUrl.includes("mapserver") && layerUrl.includes("WFS")) {
+        const wfsUrL = layerUrl;
+        const urlParamsList = wfsUrL.split("/");
+        const layerName = urlParamsList[urlParamsList.length - 2];
+        that.addHtWFSLayers(wfsUrL, layerName);
+      }
+      
+      // 中地数码
+      if (layerUrl.includes("/rest/services/")) {
+        const paramsList = layerUrl
+          .split("/rest/services/")[1]
+          .split("/");
+        const layerName = paramsList[paramsList.length - 2];
+        if (layerUrl.includes("WMTS")) {
+          that.addZdsmWMTSLayers(layerUrl, layerName);
+        }
+        if (layerUrl.includes("WFS")) {
+          that.addZdsmWFSLayers(layerUrl, layerName);
+        }
+      }
+    },
+
     // 工通过id获取服务信息
     getServiceInfoById(id) {
       const that = this;
@@ -519,56 +572,10 @@ export default {
         })
         .then(function (res) {
           const data = JSON.parse(res);
-          let serviceCode = "";
           if (data.status == 200) {
-            serviceCode = data.data.gateway.serviceCode;
             if (data.data && data.data.gateway && data.data.gateway.serApiUrl) {
               const _url = data.data.gateway.serApiUrl;
-              function delUrlIp(url) {
-                // 使用正则表达式匹配协议和域名/IP部分
-                const regex =
-                  /^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^\/\n]+)(.*)/;
-                // 使用正则表达式替换匹配的部分
-                return url.replace(regex, "$2");
-              }
-              const layerUrl = window.htBaseUrl + delUrlIp(_url);
-              // 航天宏图wmts
-              if (
-                (layerUrl.includes("mapserver") && layerUrl.includes("WMTS")) ||
-                layerUrl.includes("/image/WMTS")
-              ) {
-                const wmtsUrl = layerUrl.split("/getTile")[0];
-                const urlParamsList = wmtsUrl.split("/");
-                const layerName = urlParamsList[urlParamsList.length - 2];
-                const wmtsGetCapabilitiesUrl = wmtsUrl + "/getCapabilities";
-                that.addHtWMTSLayers(
-                  wmtsUrl,
-                  wmtsGetCapabilitiesUrl,
-                  layerName,
-                  serviceCode
-                );
-              }
-              // 航天宏图wfs
-              if (layerUrl.includes("mapserver") && layerUrl.includes("WFS")) {
-                const wfsUrL = layerUrl;
-                const urlParamsList = wfsUrL.split("/");
-                const layerName = urlParamsList[urlParamsList.length - 2];
-                that.addHtWFSLayers(wfsUrL, layerName, serviceCode);
-              }
-
-              // 中地数码
-              if (layerUrl.includes("/rest/services/")) {
-                const paramsList = layerUrl
-                  .split("/rest/services/")[1]
-                  .split("/");
-                const layerName = paramsList[paramsList.length - 2];
-                if (layerUrl.includes("WMTS")) {
-                  that.addZdsmWMTSLayers(layerUrl, layerName, serviceCode);
-                }
-                if (layerUrl.includes("WFS")) {
-                  that.addZdsmWFSLayers(layerUrl, layerName, serviceCode);
-                }
-              }
+              that.getFunByUrl(_url)
             }
           } else {
             // 调用吉奥查询接口

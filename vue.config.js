@@ -20,7 +20,10 @@ module.exports = defineConfig({
           '^/index/': '/index/'
         }
       }
-    }
+    },
   },
+  configureWebpack: {
+    devtool: "source-map" //开启debugger
+  }
   // productionSourceMap: false
 })
