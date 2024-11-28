@@ -509,8 +509,52 @@ export default {
         });
     },
 
+    // 天地图WMTS
+    addTdtWMTSLayers(url) {
+      function delUrlIp(url) {
+        // 使用正则表达式匹配协议和域名/IP部分
+        const regex = /^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^\/\n]+)(.*)/;
+        // 使用正则表达式替换匹配的部分
+        return url.replace(regex, "$2");
+      }
+      const layerUrl = url.split('?')[0]
+      const layerName = delUrlIp(layerUrl).split('/')[0]
+      
+      const projectionExtent = this.getProjection4326().getExtent();
+      const size = ol.extent.getWidth(projectionExtent) / 256;
+      const resolutions = [];
+      for (let z = 1; z < 21; ++z) {
+        resolutions[z] = size / Math.pow(2, z);
+      }
+      const matrixIds = Array.from({ length: 17 }, (_, i) => i.toString());
+
+      const layer = new ol.layer.Tile({
+        source: new ol.source.WMTS({
+          url: `${layerUrl}?tk=${window.mapConfig.tk}`,
+          layer: layerName,
+          matrixSet: "c",
+          style: "default",
+          crossOrigin: "anonymous",
+          format: "tiles",
+          wrapX: true,
+          tileGrid: new ol.tilegrid.WMTS({
+            origin: ol.extent.getTopLeft(
+              this.getProjection4326().getExtent()
+            ),
+            resolutions: resolutions,
+            matrixIds: matrixIds,
+          }),
+        }),
+      })
+      this.map.addLayer(layer);
+    },
+
     // 通过服务url判断调用哪个方法
     getFunByUrl(_url) {
+      // 如果是天地图
+      if (_url.includes('tianditu')) {
+        this.addTdtWMTSLayers(_url);
+      }
       const that = this;
       function delUrlIp(url) {
         // 使用正则表达式匹配协议和域名/IP部分
