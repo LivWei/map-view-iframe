@@ -379,6 +379,8 @@ export default {
         request: "GetFeature",
         typename: `${layerName}:t0`, // 图层名称，格式为workspace:layer_name
         token: window.mapConfig.zdsmToken,
+        srsName: "EPSG:4326",
+        outputFormat: "JSON",
       };
 
       const queryString = Object.keys(params)
@@ -391,11 +393,7 @@ export default {
           return response.text();
         })
         .then(function (text) {
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(text, "text/xml");
-          const x2js = new X2JS();
-          const json = x2js.xml2json(xmlDoc);
-          const jsonList = json.FeatureCollection.featureMembers.t0;
+          const json = JSON.parse(text);
 
           const styles = new ol.style.Style({
             fill: that.fill,
@@ -403,105 +401,12 @@ export default {
             image: that.image,
           });
 
-          const featureList = [];
-
-          if (Array.isArray(jsonList)) {
-            // 如果是多点
-            jsonList.forEach((item) => {
-              const lonlat =
-                item.the_geom.MultiPoint.pointMember.Point.pos.__text.split(
-                  " "
-                );
-              const lon = Number(lonlat[0]);
-              const lat = Number(lonlat[1]);
-              const transLonlat = ol.proj.transform(
-                [lon, lat],
-                that.getProjection4547(),
-                that.getProjection4490()
-              );
-              const Feature = new ol.Feature({
-                geometry: new ol.geom.Point(transLonlat),
-                name: item["标准名"].__text,
-              });
-              Feature.setStyle(
-                new ol.style.Style({
-                  image: that.image,
-                  // text: new ol.style.Text({
-                  //   text: item["标准名"].__text,
-                  //   offsetY: -5,
-                  //   fill: new ol.style.Fill({ color: "#000000" }),
-                  // }),
-                })
-              );
-              featureList.push(Feature);
-            });
-          } else if (jsonList.the_geom) {
-            function getCoordinateList(coordinatesStr) {
-              // 将坐标字符串分割成数组
-              const coordinatesArray = coordinatesStr.split(" ");
-              // 将坐标数组转换为经纬度坐标对数组
-              const latLongArray = [];
-              for (let i = 0; i < coordinatesArray.length; i += 2) {
-                if (i + 1 < coordinatesArray.length) {
-                  latLongArray.push([
-                    parseFloat(coordinatesArray[i]),
-                    parseFloat(coordinatesArray[i + 1]),
-                  ]);
-                }
-              }
-              // 输出经纬度坐标数组
-              // console.log(latLongArray);
-              return latLongArray;
-            }
-
-            function setFeature(coorStr, lon, lat) {
-              const coorList = getCoordinateList(coorStr);
-
-              const PolygonList = [];
-              coorList.forEach((m) => {
-                PolygonList.push(
-                  ol.proj.transform(
-                    [m[lon], m[lat]],
-                    that.getProjection4547(),
-                    that.getProjection4490()
-                  )
-                );
-              });
-
-              const Feature = new ol.Feature({
-                geometry: new ol.geom.Polygon([PolygonList]),
-              });
-
-              Feature.setStyle(styles);
-              featureList.push(Feature);
-            }
-
-            // 如果是多面
-            const surfaceList = jsonList.the_geom.MultiSurface.surfaceMember;
-            surfaceList.forEach((item) => {
-              if (item.Polygon.exterior) {
-                const coorStr = item.Polygon.exterior.LinearRing.posList.__text;
-                setFeature(coorStr, 0, 1);
-              }
-              if (item.Polygon.interior) {
-                if (Array.isArray(item.Polygon.interior)) {
-                  item.Polygon.interior.forEach((m) => {
-                    const coorStr = m.LinearRing.posList.__text;
-                    setFeature(coorStr, 1, 0);
-                  });
-                } else {
-                  const coorStr =
-                    item.Polygon.interior.LinearRing.posList.__text;
-                  setFeature(coorStr, 1, 0);
-                }
-              }
-            });
-          }
+          const vectorSource = new ol.source.Vector({
+            features: new ol.format.GeoJSON().readFeatures(json),
+          });
 
           const vectorLayer = new ol.layer.Vector({
-            source: new ol.source.Vector({
-              features: featureList,
-            }),
+            source: vectorSource,
             style: styles,
           });
 
@@ -517,9 +422,9 @@ export default {
         // 使用正则表达式替换匹配的部分
         return url.replace(regex, "$2");
       }
-      const layerUrl = url.split('?')[0]
-      const layerName = delUrlIp(layerUrl).split('/')[0]
-      
+      const layerUrl = url.split("?")[0];
+      const layerName = delUrlIp(layerUrl).split("/")[0];
+
       const projectionExtent = this.getProjection4326().getExtent();
       const size = ol.extent.getWidth(projectionExtent) / 256;
       const resolutions = [];
@@ -538,21 +443,19 @@ export default {
           format: "tiles",
           wrapX: true,
           tileGrid: new ol.tilegrid.WMTS({
-            origin: ol.extent.getTopLeft(
-              this.getProjection4326().getExtent()
-            ),
+            origin: ol.extent.getTopLeft(this.getProjection4326().getExtent()),
             resolutions: resolutions,
             matrixIds: matrixIds,
           }),
         }),
-      })
+      });
       this.map.addLayer(layer);
     },
 
     // 通过服务url判断调用哪个方法
     getFunByUrl(_url) {
       // 如果是天地图
-      if (_url.includes('tianditu')) {
+      if (_url.includes("tianditu")) {
         this.addTdtWMTSLayers(_url);
       }
       const that = this;
@@ -646,7 +549,7 @@ export default {
             .then(function (text) {
               const parser = new ol.format.WMTSCapabilities();
               const result = parser.read(text);
-              const layerName = result.Contents.Layer[0].Title
+              const layerName = result.Contents.Layer[0].Title;
               const options = ol.source.WMTS.optionsFromCapabilities(result, {
                 layer: layerName,
               });
@@ -689,8 +592,7 @@ export default {
     //武大吉奥 wmts
     addWdjaWMTSLayers(layerUrl, layerName) {
       const that = this;
-      const _layerUrl =
-        "/index/yzt/geostar/GD_2020DLG/wmts?SERVICE=WMTS";
+      const _layerUrl = "/index/yzt/geostar/GD_2020DLG/wmts?SERVICE=WMTS";
       // 请求图层的元数据
       fetch(_layerUrl + "&REQUEST=GetCapabilities")
         .then(function (response) {
@@ -702,7 +604,7 @@ export default {
           const options = ol.source.WMTS.optionsFromCapabilities(result, {
             layer: "DLGDT_2000_2020",
           });
-          console.log(options)
+          console.log(options);
 
           // 设置天地图底图
           const projectionExtent = that.getProjection4326().getExtent();
