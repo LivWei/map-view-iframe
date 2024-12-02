@@ -10,6 +10,13 @@
         <img src="../assets/images/img.png" alt="" />
       </div>
     </div>
+
+    <!-- 弹窗 -->
+    <div id="popup" v-show="shopPopup">
+      <div v-for="(item, index) in popupContent" :key="index">
+        {{ item.name }}: {{ item.value }}
+      </div>
+    </div>
   </dir>
 </template>
 
@@ -27,6 +34,10 @@ export default {
       image: null,
 
       showBtns: false,
+
+      shopPopup: false,
+      popupContent: [],
+      popupObj: null
     };
   },
   created() {
@@ -410,7 +421,47 @@ export default {
           });
 
           that.map.addLayer(vectorLayer);
+
+          that.popupObj = new ol.Overlay({
+            element: document.getElementById('popup'),
+            positioning: "bottom-center",
+            stopEvent: false,
+            autoPan: true, // 如果弹窗在底图边缘时，底图会移动
+            autoPanAnimation: { // 底图移动动画
+              duration: 250
+            }
+          });
+          that.map.addOverlay(that.popupObj)
+          that.map.on('pointermove', evt => {
+            that.feature_Info(evt)
+          })
         });
+    },
+
+    feature_Info (evt) {
+      let feature = this.map.forEachFeatureAtPixel(
+        evt.pixel,
+        (feature) => feature
+      );
+      if (feature) {
+        this.shopPopup = true;
+        let coordinates = feature.getGeometry().getCoordinates();
+        this.popupObj.setPosition(coordinates);
+        const _popupContent = feature.values_
+
+        this.popupContent = []
+        for(const i in _popupContent) {
+          if (i != 'geometry') {
+            this.popupContent.push({
+              name: i,
+              value: _popupContent[i]
+            })
+          }
+        }
+      } else {
+        this.shopPopup = false;
+        this.popupObj.setPosition(null);
+      }
     },
 
     // 天地图WMTS
@@ -456,6 +507,7 @@ export default {
       // 如果是天地图
       if (_url.includes("tianditu")) {
         this.addTdtWMTSLayers(_url);
+        return
       }
       const that = this;
       function delUrlIp(url) {
@@ -464,7 +516,14 @@ export default {
         // 使用正则表达式替换匹配的部分
         return url.replace(regex, "$2");
       }
-      const layerUrl = window.htBaseUrl + delUrlIp(_url);
+
+      let layerUrl = ''
+      if (_url.includes('/gtserver')) {
+        layerUrl = window.htBaseUrl + delUrlIp(_url);
+      } else {
+        layerUrl = _url
+      }
+      
       // 航天宏图wmts
       if (
         (layerUrl.includes("mapserver") && layerUrl.includes("WMTS")) ||
@@ -745,5 +804,14 @@ export default {
       border-bottom: 1px solid #ccc;
     }
   }
+}
+
+#popup {
+  background: #ffffff;
+  border-radius: 4px;
+  border: 1px solid #cccccc;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
 }
 </style>
