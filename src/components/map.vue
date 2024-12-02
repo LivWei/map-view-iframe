@@ -400,7 +400,6 @@ export default {
             stroke: that.stroke,
             image: that.image,
           });
-
           const vectorSource = new ol.source.Vector({
             features: new ol.format.GeoJSON().readFeatures(json),
           });
@@ -496,6 +495,16 @@ export default {
           that.addZdsmWFSLayers(layerUrl, layerName);
         }
       }
+
+      // 武大吉奥
+      if (layerUrl.includes("/geostar")) {
+        if (layerUrl.includes("wmts")) {
+          that.addWdjaWMTSLayers(layerUrl);
+        }
+        if (layerUrl.includes("wfs")) {
+          that.addWdjaWFSLayers(layerUrl);
+        }
+      }
     },
 
     // 工通过id获取服务信息
@@ -522,8 +531,6 @@ export default {
     },
     // 通过id获取other服务信息
     getServiceInfoByGao(id) {
-      // this.addWdjaWMTSLayers();
-      // return;
       const that = this;
       const url = `https://data.gdgov.cn/index/yzt/ResourcesCenter/resource/viewInfo?id=${id}`;
       function delUrlIp(url) {
@@ -590,11 +597,12 @@ export default {
     },
 
     //武大吉奥 wmts
-    addWdjaWMTSLayers(layerUrl, layerName) {
+    addWdjaWMTSLayers(layerUrl) {
+      // /index/yzt/geostar/GD_2020DLG/wmts
       const that = this;
-      const _layerUrl = "/index/yzt/geostar/GD_2020DLG/wmts?SERVICE=WMTS";
+      const _layerUrl = layerUrl;
       // 请求图层的元数据
-      fetch(_layerUrl + "&REQUEST=GetCapabilities")
+      fetch(_layerUrl + "?SERVICE=WMTS&REQUEST=GetCapabilities")
         .then(function (response) {
           return response.text();
         })
@@ -602,11 +610,9 @@ export default {
           const parser = new ol.format.WMTSCapabilities();
           const result = parser.read(text);
           const options = ol.source.WMTS.optionsFromCapabilities(result, {
-            layer: "DLGDT_2000_2020",
+            layer: result.Contents.Layer[0].Title,
           });
-          console.log(options);
 
-          // 设置天地图底图
           const projectionExtent = that.getProjection4326().getExtent();
           const size = ol.extent.getWidth(projectionExtent) / 256;
           const resolutions = [];
@@ -635,6 +641,57 @@ export default {
           that.map.addLayer(_layer);
         });
     },
+
+    // 武大吉奥
+    addWdjaWFSLayers (layerUrl) {
+      const that = this;
+      const params = {
+        service: "WFS",
+        version: "1.1.0",
+        request: "GetFeature",
+        srsName: "EPSG:4326",
+        RESULTTYPE: 'result',
+        outputFormat: "GEOJSON",
+      };
+
+      let _layerUrl = ''
+      if (!layerUrl.includes('/wfs')) {
+        _layerUrl = layerUrl + '/wfs'
+      } else {
+        _layerUrl = layerUrl
+      }
+
+      const queryString = Object.keys(params)
+        .map((key) => `${key}=${encodeURIComponent(params[key])}`)
+        .join("&");
+      const fullUrl = `${_layerUrl}?${queryString}`;
+
+      fetch(fullUrl, { credentials: "include" })
+        .then(function (response) {
+          return response.text();
+        })
+        .then(function (text) {
+          console.log(typeof text);
+          const json = text;
+
+          const styles = new ol.style.Style({
+            fill: that.fill,
+            stroke: that.stroke,
+            image: that.image,
+          });
+
+          const vectorSource = new ol.source.Vector({
+            features: new ol.format.GeoJSON().readFeatures(json),
+          });
+
+          const vectorLayer = new ol.layer.Vector({
+            source: vectorSource,
+            style: styles,
+          });
+
+          that.map.addLayer(vectorLayer);
+        });
+    }
   },
   computed: {},
   watch: {},
