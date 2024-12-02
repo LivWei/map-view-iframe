@@ -331,7 +331,16 @@ export default {
           const format = new ol.format.WKT();
           const featureList = [];
           jsonList.forEach((item) => {
-            featureList.push(format.readFeature(item.geom));
+            const feature = format.readFeature(item.geom)
+
+            const _item = JSON.parse(JSON.stringify(item))
+            delete _item.geom
+            feature.values_ = {
+              ...feature.values_,
+              ..._item
+            }
+
+            featureList.push(feature);
           });
 
           const vectorLayer = new ol.layer.Vector({
@@ -342,6 +351,16 @@ export default {
           });
 
           that.map.addLayer(vectorLayer);
+
+          that.popupObj = new ol.Overlay({
+            element: document.getElementById('popup'),
+            positioning: "bottom-center",
+            stopEvent: false,
+          });
+          that.map.addOverlay(that.popupObj)
+          that.map.on('singleclick', evt => {
+            that.feature_Info(evt)
+          })
         });
     },
 
@@ -426,13 +445,9 @@ export default {
             element: document.getElementById('popup'),
             positioning: "bottom-center",
             stopEvent: false,
-            autoPan: true, // 如果弹窗在底图边缘时，底图会移动
-            autoPanAnimation: { // 底图移动动画
-              duration: 250
-            }
           });
           that.map.addOverlay(that.popupObj)
-          that.map.on('pointermove', evt => {
+          that.map.on('singleclick', evt => {
             that.feature_Info(evt)
           })
         });
@@ -445,8 +460,7 @@ export default {
       );
       if (feature) {
         this.shopPopup = true;
-        let coordinates = feature.getGeometry().getCoordinates();
-        this.popupObj.setPosition(coordinates);
+        this.popupObj.setPosition(evt.coordinate);
         const _popupContent = feature.values_
 
         this.popupContent = []
@@ -725,13 +739,15 @@ export default {
         .join("&");
       const fullUrl = `${_layerUrl}?${queryString}`;
 
+      // const lll = '/index/yzt/geostar/GDS2022GJGZTB/wfs?REQUEST=GetFeature&SERVICE=wfs&outputFormat=GEOJSON'
+
       fetch(fullUrl, { credentials: "include" })
         .then(function (response) {
           return response.text();
         })
         .then(function (text) {
           console.log(typeof text);
-          const json = text;
+          const json = JSON.parse(text);
 
           const styles = new ol.style.Style({
             fill: that.fill,
@@ -749,6 +765,16 @@ export default {
           });
 
           that.map.addLayer(vectorLayer);
+
+          that.popupObj = new ol.Overlay({
+            element: document.getElementById('popup'),
+            positioning: "bottom-center",
+            stopEvent: false,
+          });
+          that.map.addOverlay(that.popupObj)
+          that.map.on('singleclick', evt => {
+            that.feature_Info(evt)
+          })
         });
     }
   },
@@ -813,5 +839,22 @@ export default {
   padding: 6px;
   display: flex;
   flex-direction: column;
+  max-height: 300px;
+  max-width: 400px;
+  overflow: auto;
+  pointer-events: auto;
+}
+#popup::-webkit-scrollbar {  //滚动条整体部分
+  width: 10px;
+}
+
+#popup::-webkit-scrollbar-track { //滚动条的轨道（里面装有Thumb）
+  border-radius: 5px;
+  background-color: #eee;
+}
+
+#popup::-webkit-scrollbar-thumb { //滚动条里面的小方块，能向上向下移动（或向左向右移动）
+  border-radius: 5px;
+  background: #bbbbbb;
 }
 </style>
