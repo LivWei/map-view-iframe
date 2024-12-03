@@ -302,7 +302,8 @@ export default {
     // 航天宏图 WFS
     addHtWFSLayers(wfsUrL) {
       const that = this;
-      const getCapabilitiesUrl = wfsUrL.replace("getFeature", "getCapabilities");
+      const _wfsUrL = wfsUrL.includes('/getFeature') ? wfsUrL : wfsUrL + '/getFeature'
+      const getCapabilitiesUrl = _wfsUrL.replace("getFeature", "getCapabilities");
       fetch(getCapabilitiesUrl, { credentials: "include" })
         .then(function (response) {
           return response.text();
@@ -328,7 +329,7 @@ export default {
             const queryString = Object.keys(params)
               .map((key) => `${key}=${encodeURIComponent(params[key])}`)
               .join("&");
-            const fullUrl = `${wfsUrL}?${queryString}`;
+            const fullUrl = `${_wfsUrL}?${queryString}`;
 
             fetch(fullUrl, { credentials: "include" })
               .then(function (response) {
