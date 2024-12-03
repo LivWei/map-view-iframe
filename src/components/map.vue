@@ -877,6 +877,7 @@ export default {
   height: 30px;
   width: 30px;
   background: #ffffff;
-  transform: rotate(45deg)
+  transform: rotate(45deg);
+  z-index: -1;
 }
 </style>
