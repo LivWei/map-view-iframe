@@ -40,7 +40,10 @@ export default {
 
       shopPopup: false,
       popupContent: [],
-      popupObj: null
+      popupObj: null,
+
+      
+      listCatalogColumn: [], // 数据项
     };
   },
   created() {
@@ -476,18 +479,25 @@ export default {
         this.shopPopup = true;
         this.popupObj.setPosition(evt.coordinate);
         const _popupContent = feature.values_
-
+        // console.log(this.listCatalogColumn)
         this.popupContent = []
-
-        const noShowList = window.noShowFileds
-        for(const i in _popupContent) {
-          if (!noShowList.includes(i)) {
+        this.listCatalogColumn.forEach(item => {
+          if (item.nameCn != 'pid') {
             this.popupContent.push({
-              name: i,
-              value: _popupContent[i]
+              name: item.nameCn,
+              value: _popupContent[item.columnName]
             })
           }
+        })
+        if (this.popupContent.length == 0) {
+          this.popupContent = [
+            {
+              name: '无字段',
+              value: '请先添加数据项！'
+            }
+          ]
         }
+        this.$forceUpdate()
       } else {
         this.shopPopup = false;
         this.popupObj.setPosition(null);
@@ -607,6 +617,8 @@ export default {
         .then(function (res) {
           const data = JSON.parse(res);
           if (data.status == 200) {
+            that.listCatalogColumn = data.data.listCatalogColumn
+
             if (data.data && data.data.gateway && data.data.gateway.serApiUrl) {
               const _url = data.data.gateway.serApiUrl;
               that.getFunByUrl(_url);
