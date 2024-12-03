@@ -598,10 +598,10 @@ export default {
       // 武大吉奥
       if (layerUrl.includes("/geostar")) {
         if (layerUrl.includes("wmts")) {
-          that.addWdjaWMTSLayers(oldWdjaUrl);
+          that.addWdjaWMTSLayers(layerUrl);
         }
         if (layerUrl.includes("wfs")) {
-          that.addWdjaWFSLayers(oldWdjaUrl);
+          that.addWdjaWFSLayers(layerUrl);
         }
       }
     },
