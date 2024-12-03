@@ -112,11 +112,7 @@ export default {
 
       let proxyUrl = "";
       if (process.env.NODE_ENV === "production") {
-        if (window.isProduction) {
-          proxyUrl = "https://data.gdgov.cn";
-        } else {
-          proxyUrl = "https://xtbgzww.digitalgd.com.cn";
-        }
+        proxyUrl = window.top.location.origin
       } else {
         proxyUrl = "http://localhost:8077";
       }
@@ -301,70 +297,85 @@ export default {
         });
     },
     // 航天宏图 WFS
-    addHtWFSLayers(wfsUrL, layerName) {
+    addHtWFSLayers(wfsUrL) {
       const that = this;
-      const params = {
-        service: "WFS",
-        version: "1.1.0",
-        request: "GetFeature",
-        layerName: layerName,
-        outputFormat: "application/json",
-        maxFeatures: 1000000,
-        srsName: "EPSG:4490",
-      };
-
-      const queryString = Object.keys(params)
-        .map((key) => `${key}=${encodeURIComponent(params[key])}`)
-        .join("&");
-      const fullUrl = `${wfsUrL}?${queryString}`;
-
-      fetch(fullUrl, { credentials: "include" })
+      const getCapabilitiesUrl = wfsUrL.replace("getFeature", "getCapabilities");
+      fetch(getCapabilitiesUrl, { credentials: "include" })
         .then(function (response) {
           return response.text();
         })
-        .then(function (res) {
-          const jsonList = JSON.parse(res);
+        .then(function (text) {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(text, "text/xml");
+          const x2js = new X2JS();
+          const json = x2js.xml2json(xmlDoc);
+          const wfsLayerList = json.WFS_Capabilities.FeatureTypeList.FeatureType
 
-          const styles = new ol.style.Style({
-            fill: that.fill,
-            stroke: that.stroke,
-            image: that.image,
+          wfsLayerList.forEach((item) => {
+            const params = {
+              service: "WFS",
+              version: "1.1.0",
+              request: "GetFeature",
+              layerName: item.Name,
+              outputFormat: "application/json",
+              maxFeatures: 1000000,
+              srsName: "EPSG:4490",
+            };
+
+            const queryString = Object.keys(params)
+              .map((key) => `${key}=${encodeURIComponent(params[key])}`)
+              .join("&");
+            const fullUrl = `${wfsUrL}?${queryString}`;
+
+            fetch(fullUrl, { credentials: "include" })
+              .then(function (response) {
+                return response.text();
+              })
+              .then(function (res) {
+                const jsonList = JSON.parse(res);
+
+                const styles = new ol.style.Style({
+                  fill: that.fill,
+                  stroke: that.stroke,
+                  image: that.image,
+                });
+
+                const format = new ol.format.WKT();
+                const featureList = [];
+                jsonList.forEach((item) => {
+                  const feature = format.readFeature(item.geom)
+
+                  const _item = JSON.parse(JSON.stringify(item))
+                  delete _item.geom
+                  feature.values_ = {
+                    ...feature.values_,
+                    ..._item
+                  }
+
+                  featureList.push(feature);
+                });
+
+                const vectorLayer = new ol.layer.Vector({
+                  source: new ol.source.Vector({
+                    features: featureList,
+                  }),
+                  style: styles,
+                });
+
+                that.map.addLayer(vectorLayer);
+
+                that.popupObj = new ol.Overlay({
+                  element: document.getElementById('popup'),
+                  positioning: "bottom-center",
+                  stopEvent: true,
+                });
+                that.map.addOverlay(that.popupObj)
+                that.map.on('singleclick', evt => {
+                  that.feature_Info(evt)
+                })
+              });
           });
-
-          const format = new ol.format.WKT();
-          const featureList = [];
-          jsonList.forEach((item) => {
-            const feature = format.readFeature(item.geom)
-
-            const _item = JSON.parse(JSON.stringify(item))
-            delete _item.geom
-            feature.values_ = {
-              ...feature.values_,
-              ..._item
-            }
-
-            featureList.push(feature);
-          });
-
-          const vectorLayer = new ol.layer.Vector({
-            source: new ol.source.Vector({
-              features: featureList,
-            }),
-            style: styles,
-          });
-
-          that.map.addLayer(vectorLayer);
-
-          that.popupObj = new ol.Overlay({
-            element: document.getElementById('popup'),
-            positioning: "bottom-center",
-            stopEvent: true,
-          });
-          that.map.addOverlay(that.popupObj)
-          that.map.on('singleclick', evt => {
-            that.feature_Info(evt)
-          })
-        });
+        })
     },
 
     // 中地数码 WMTS
