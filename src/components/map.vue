@@ -543,7 +543,7 @@ export default {
     },
 
     // 通过服务url判断调用哪个方法
-    getFunByUrl(_url) {
+    getFunByUrl(_url, oldWdjaUrl) {
       // 如果是天地图
       if (_url.includes("tianditu")) {
         this.addTdtWMTSLayers(_url);
@@ -598,10 +598,10 @@ export default {
       // 武大吉奥
       if (layerUrl.includes("/geostar")) {
         if (layerUrl.includes("wmts")) {
-          that.addWdjaWMTSLayers(layerUrl);
+          that.addWdjaWMTSLayers(oldWdjaUrl);
         }
         if (layerUrl.includes("wfs")) {
-          that.addWdjaWFSLayers(layerUrl);
+          that.addWdjaWFSLayers(oldWdjaUrl);
         }
       }
     },
@@ -621,7 +621,8 @@ export default {
 
             if (data.data && data.data.gateway && data.data.gateway.serApiUrl) {
               const _url = data.data.gateway.serApiUrl;
-              that.getFunByUrl(_url);
+              const oldWdjaUrl = data.data.gateway.mapServicePath
+              that.getFunByUrl(_url, oldWdjaUrl);
             }
           } else {
             // 调用吉奥查询接口
@@ -745,21 +746,31 @@ export default {
 
     // 武大吉奥
     addWdjaWFSLayers (layerUrl) {
+      let proxyUrl = ''
+      if (process.env.NODE_ENV === "production") {
+        proxyUrl = layerUrl
+      } else {
+        function delUrlIp(url) {
+          // 使用正则表达式匹配协议和域名/IP部分
+          const regex = /^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^\/\n]+)(.*)/;
+          // 使用正则表达式替换匹配的部分
+          return url.replace(regex, "$2");
+        }
+        proxyUrl = delUrlIp(layerUrl);
+      }
       const that = this;
       const params = {
         service: "WFS",
-        version: "1.1.0",
         request: "GetFeature",
-        srsName: "EPSG:4326",
         RESULTTYPE: 'result',
         outputFormat: "GEOJSON",
       };
 
       let _layerUrl = ''
       if (!layerUrl.includes('/wfs')) {
-        _layerUrl = layerUrl + '/wfs'
+        _layerUrl = proxyUrl + '/wfs'
       } else {
-        _layerUrl = layerUrl
+        _layerUrl = proxyUrl
       }
 
       const queryString = Object.keys(params)
