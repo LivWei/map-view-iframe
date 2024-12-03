@@ -13,8 +13,11 @@
 
     <!-- 弹窗 -->
     <div id="popup" v-show="shopPopup">
-      <div v-for="(item, index) in popupContent" :key="index">
-        {{ item.name }}: {{ item.value }}
+      <div class="popup-content">
+        <div v-for="(item, index) in popupContent" :key="index">
+          {{ item.name }}: {{ item.value }}
+        </div>
+        <div class="triangle"></div>
       </div>
     </div>
   </dir>
@@ -355,7 +358,7 @@ export default {
           that.popupObj = new ol.Overlay({
             element: document.getElementById('popup'),
             positioning: "bottom-center",
-            stopEvent: false,
+            stopEvent: true,
           });
           that.map.addOverlay(that.popupObj)
           that.map.on('singleclick', evt => {
@@ -444,7 +447,7 @@ export default {
           that.popupObj = new ol.Overlay({
             element: document.getElementById('popup'),
             positioning: "bottom-center",
-            stopEvent: false,
+            stopEvent: true,
           });
           that.map.addOverlay(that.popupObj)
           that.map.on('singleclick', evt => {
@@ -464,8 +467,10 @@ export default {
         const _popupContent = feature.values_
 
         this.popupContent = []
+
+        const noShowList = window.noShowFileds
         for(const i in _popupContent) {
-          if (i != 'geometry') {
+          if (!noShowList.includes(i)) {
             this.popupContent.push({
               name: i,
               value: _popupContent[i]
@@ -769,7 +774,7 @@ export default {
           that.popupObj = new ol.Overlay({
             element: document.getElementById('popup'),
             positioning: "bottom-center",
-            stopEvent: false,
+            stopEvent: true,
           });
           that.map.addOverlay(that.popupObj)
           that.map.on('singleclick', evt => {
@@ -833,28 +838,45 @@ export default {
 }
 
 #popup {
+  padding-bottom: 15px;
+  position: relative;
+}
+
+.popup-content {
+  padding: 12px;
+  max-height: 300px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  pointer-events: auto;
   background: #ffffff;
   border-radius: 4px;
   border: 1px solid #cccccc;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  max-height: 300px;
-  max-width: 400px;
-  overflow: auto;
-  pointer-events: auto;
 }
-#popup::-webkit-scrollbar {  //滚动条整体部分
+
+.popup-content::-webkit-scrollbar {  //滚动条整体部分
   width: 10px;
 }
 
-#popup::-webkit-scrollbar-track { //滚动条的轨道（里面装有Thumb）
+.popup-content::-webkit-scrollbar-track { //滚动条的轨道（里面装有Thumb）
   border-radius: 5px;
   background-color: #eee;
 }
 
-#popup::-webkit-scrollbar-thumb { //滚动条里面的小方块，能向上向下移动（或向左向右移动）
+.popup-content::-webkit-scrollbar-thumb { //滚动条里面的小方块，能向上向下移动（或向左向右移动）
   border-radius: 5px;
   background: #bbbbbb;
+}
+
+.triangle {
+  position: absolute;
+  left: 50%;
+  margin-left: -15px;
+  bottom: 0;
+  height: 30px;
+  width: 30px;
+  background: #ffffff;
+  transform: rotate(45deg)
 }
 </style>
