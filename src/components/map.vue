@@ -542,7 +542,7 @@ export default {
     },
 
     // 通过服务url判断调用哪个方法
-    getFunByUrl(_url, oldWdjaUrl) {
+    getFunByUrl(_url) {
       // 如果是天地图
       if (_url.includes("tianditu")) {
         this.addTdtWMTSLayers(_url);
@@ -620,8 +620,8 @@ export default {
 
             if (data.data && data.data.gateway && data.data.gateway.serApiUrl) {
               const _url = data.data.gateway.serApiUrl;
-              const oldWdjaUrl = data.data.gateway.mapServicePath
-              that.getFunByUrl(_url, oldWdjaUrl);
+              // const oldWdjaUrl = data.data.gateway.mapServicePath
+              that.getFunByUrl(_url);
             }
           } else {
             // 调用吉奥查询接口
